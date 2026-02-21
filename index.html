@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafiaens Hevn - Online Mafia Strategispill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --gold-dark: #B8941F;
+            --dark: #0a0a0a;
+            --darker: #050505;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--darker);
+            color: #e5e5e5;
+            overflow-x: hidden;
+        }
+        
+        .font-mafia {
+            font-family: 'Cinzel', serif;
+        }
+        
+        .gold-gradient {
+            background: linear-gradient(135deg, #D4AF37 0%, #F4E5C2 50%, #D4AF37 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .gold-border {
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+            color: #000;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.4);
+        }
+        
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        
+        .chat-message {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .pulse-gold {
+            animation: pulseGold 2s infinite;
+        }
+        
+        @keyframes pulseGold {
+            0%, 100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.8); }
+        }
+        
+        .crime-card {
+            transition: all 0.3s ease;
+        }
+        
+        .crime-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold);
+        }
+        
+        .cooldown-overlay {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .prison-bar {
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(212, 175, 55, 0.3) 10px,
+                rgba(212, 175, 55, 0.3) 12px
+            );
+        }
+        
+        .hidden { display: none !important; }
+        
+        .fade-in { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--darker); }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen bg-black text-gray-200">
+
+    <!-- Login/Register Screen -->
+    <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div class="w-full max-w-md p-8 glass-panel rounded-lg">
+            <h1 class="text-4xl font-mafia text-center gold-gradient mb-2">Mafiaens Hevn</h1>
+            <p class="text-center text-gray-400 mb-8 text-sm">Online strategispill om makt og overlevelse</p>
+            
+            <div id="loginForm">
+                <input type="email" id="loginEmail" placeholder="E-post" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white focus:border-yellow-600 focus:outline-none">
+                <input type="password" id="loginPassword" placeholder="Passord" class="w-full mb-6 p-3 bg-gray-900 border border-gray-700 rounded text-white focus:border-yellow-600 focus:outline-none">
+                <button onclick="auth.login()" class="w-full btn-gold py-3 rounded font-bold mb-4">LOGG INN</button>
+                <p class="text-center text-sm text-gray-400">
+                    Har ikke konto? <button onclick="auth.toggleForm()" class="text-yellow-500 hover:underline">Registrer deg</button>
+                </p>
+                <p class="text-center text-xs text-gray-600 mt-4">Standard: Admin / admin</p>
+            </div>
+            
+            <div id="registerForm" class="hidden">
+                <input type="text" id="regUsername" placeholder="Brukernavn" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white focus:border-yellow-600 focus:outline-none">
+                <input type="email" id="regEmail" placeholder="E-post" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white focus:border-yellow-600 focus:outline-none">
+                <input type="password" id="regPassword" placeholder="Passord" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white focus:border-yellow-600 focus:outline-none">
+                <select id="regCity" class="w-full mb-6 p-3 bg-gray-900 border border-gray-700 rounded text-white focus:border-yellow-600 focus:outline-none">
+                    <option value="">Velg by...</option>
+                    <option value="Oslo">Oslo</option>
+                    <option value="Bergen">Bergen</option>
+                    <option value="Århus">Århus</option>
+                    <option value="København">København</option>
+                    <option value="Lahti">Lahti</option>
+                    <option value="Helsinki">Helsinki</option>
+                    <option value="Gøteborg">Gøteborg</option>
+                    <option value="Stockholm">Stockholm</option>
+                </select>
+                <button onclick="auth.register()" class="w-full btn-gold py-3 rounded font-bold mb-4">REGISTRER</button>
+                <p class="text-center text-sm text-gray-400">
+                    Har allerede konto? <button onclick="auth.toggleForm()" class="text-yellow-500 hover:underline">Logg inn</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Interface -->
+    <div id="gameInterface" class="hidden min-h-screen flex flex-col">
+        
+        <!-- Top Navigation -->
+        <nav class="bg-gray-900 border-b border-yellow-900/30 px-4 py-3 flex justify-between items-center sticky top-0 z-40">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-mafia gold-gradient cursor-pointer" onclick="game.navigate('dashboard')">Mafiaens Hevn</h1>
+                <span id="gameTime" class="text-xs text-gray-500 font-mono"></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="game.navigate('messages')" class="relative p-2 text-gray-400 hover:text-yellow-500 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    <span id="msgBadge" class="hidden absolute -top-1 -right-1 bg-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                </button>
+                <button onclick="auth.logout()" class="text-sm text-gray-400 hover:text-white">Logg ut</button>
+            </div>
+        </nav>
+
+        <div class="flex flex-1 overflow-hidden">
+            
+            <!-- Left Sidebar - Player HUD -->
+            <aside class="w-80 bg-gray-900/50 border-r border-yellow-900/20 p-4 overflow-y-auto hidden md:block">
+                <div id="playerHUD" class="space-y-4">
+                    <!-- Profile Card -->
+                    <div class="glass-panel rounded-lg p-4 text-center">
+                        <img id="hudAvatar" src="https://i.pravatar.cc/250?img=11" class="w-32 h-32 mx-auto rounded-lg border-2 border-yellow-600/50 mb-3 object-cover">
+                        <h2 id="hudUsername" class="text-xl font-bold text-yellow-500">Ukjent</h2>
+                        <p id="hudCity" class="text-sm text-gray-400 mb-3">Ingen by</p>
+                        
+                        <div class="space-y-2 text-left text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Rang:</span>
+                                <span id="hudRank" class="text-yellow-400 font-semibold">Litenfisk</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Liv:</span>
+                                <div class="w-24 bg-gray-800 rounded-full h-4 overflow-hidden">
+                                    <div id="hudHealth" class="bg-red-600 h-full transition-all" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Erfaring:</span>
+                                <span id="hudXP">0 / 100</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2 mt-1">
+                                <div id="hudXPBar" class="bg-yellow-600 h-full transition-all" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 gap-2 text-sm">
+                            <div class="text-center">
+                                <div id="hudKills" class="text-xl font-bold text-red-500">0</div>
+                                <div class="text-xs text-gray-500">Drap</div>
+                            </div>
+                            <div class="text-center">
+                                <div id="hudMessages" class="text-xl font-bold text-blue-500">0</div>
+                                <div class="text-xs text-gray-500">Meldinger</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 pt-3 border-t border-gray-700">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400 text-sm">Våpen:</span>
+                                <span id="hudWeapon" class="text-yellow-600 text-sm">Ingen</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-gray-400 text-sm">Familie:</span>
+                                <span id="hudFamily" class="text-yellow-600 text-sm">Ingen</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-t border-gray-700">
+                            <div class="text-2xl font-bold gold-gradient" id="hudMoney">$0</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="glass-panel rounded-lg p-4">
+                        <h3 class="text-sm font-bold text-yellow-600 mb-3 uppercase tracking-wider">Hurtigmeny</h3>
+                        <nav class="space-y-1">
+                            <button onclick="game.navigate('crime')" class="w-full text-left px-3 py-2 rounded hover:bg-yellow-900/20 text-sm transition flex items-center gap-2">
+                                <span class="w-2 h-2 bg-red-500 rounded-full"></span> Kriminalitet
+                            </button>
+                            <button onclick="game.navigate('prison')" class="w-full text-left px-3 py-2 rounded hover:bg-yellow-900/20 text-sm transition flex items-center gap-2">
+                                <span class="w-2 h-2 bg-gray-500 rounded-full"></span> Fengsel
+                            </button>
+                            <button onclick="game.navigate('family')" class="w-full text-left px-3 py-2 rounded hover:bg-yellow-900/20 text-sm transition flex items-center gap-2">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span> Familie
+                            </button>
+                            <button onclick="game.navigate('market')" class="w-full text-left px-3 py-2 rounded hover:bg-yellow-900/20 text-sm transition flex items-center gap-2">
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span> Svartebørsen
+                            </button>
+                            <button onclick="game.navigate('forum')" class="w-full text-left px-3 py-2 rounded hover:bg-yellow-900/20 text-sm transition flex items-center gap-2">
+                                <span class="w-2 h-2 bg-purple-500 rounded-full"></span> Forum
+                            </button>
+                            <button onclick="game.navigate('profile')" class="w-full text-left px-3 py-2 rounded hover:bg-yellow-900/20 text-sm transition flex items-center gap-2">
+                                <span class="w-2 h-2 bg-yellow-500 rounded-full"></span> Profil
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Admin Panel Link (Conditional) -->
+                    <div id="adminLink" class="hidden glass-panel rounded-lg p-4 border-red-900/30">
+                        <button onclick="game.navigate('admin')" class="w-full btn-gold py-2 rounded text-sm font-bold">ADMIN PANEL</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 relative">
+                
+                <!-- Prison Overlay -->
+                <div id="prisonOverlay" class="hidden absolute inset-0 bg-black/95 z-30 flex items-center justify-center prison-bar">
+                    <div class="glass-panel p-8 rounded-lg max-w-md w-full mx-4 border-2 border-red-900/50">
+                        <h2 class="text-3xl font-mafia text-red-500 text-center mb-4">DU ER I FENGSEL</h2>
+                        <div class="text-center mb-6">
+                            <div class="text-6xl mb-4">🔒</div>
+                            <p class="text-gray-400 mb-2">Du blir løslatt om:</p>
+                            <div id="prisonTimer" class="text-4xl font-mono font-bold text-yellow-500">02:00</div>
+                        </div>
+                        <div class="space-y-3">
+                            <button onclick="prison.attemptBreakout()" class="w-full bg-red-900/50 hover:bg-red-900/80 border border-red-600 text-red-200 py-3 rounded font-bold transition">
+                                Prøv å rømme
+                            </button>
+                            <p class="text-xs text-center text-gray-500">Andre spillere kan også bryte deg ut</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DASHBOARD -->
+                <div id="page-dashboard" class="space-y-6 fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="glass-panel p-6 rounded-lg border-l-4 border-yellow-600">
+                            <h3 class="text-gray-400 text-sm uppercase">Dagens Inntekt</h3>
+                            <p class="text-2xl font-bold text-green-400" id="statsIncome">$0</p>
+                        </div>
+                        <div class="glass-panel p-6 rounded-lg border-l-4 border-red-600">
+                            <h3 class="text-gray-400 text-sm uppercase">Våpen</h3>
+                            <p class="text-2xl font-bold text-gray-300" id="statsWeapon">Ingen</p>
+                        </div>
+                        <div class="glass-panel p-6 rounded-lg border-l-4 border-blue-600">
+                            <h3 class="text-gray-400 text-sm uppercase">Familie Rang</h3>
+                            <p class="text-2xl font-bold text-blue-400" id="statsFamilyRank">#--</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-lg p-6">
+                        <h3 class="text-xl font-mafia text-yellow-500 mb-4">Dagens Hendelser</h3>
+                        <div id="dailyEvents" class="space-y-3">
+                            <!-- AI Generated Events -->
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="glass-panel rounded-lg p-6">
+                            <h3 class="text-lg font-bold text-yellow-600 mb-4">Topp 5 Spillere</h3>
+                            <div id="topPlayers" class="space-y-2">
+                                <!-- Dynamic Content -->
+                            </div>
+                        </div>
+                        <div class="glass-panel rounded-lg p-6">
+                            <h3 class="text-lg font-bold text-yellow-600 mb-4">Mest Aktive Familier</h3>
+                            <div id="topFamilies" class="space-y-2">
+                                <!-- Dynamic Content -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CRIME PAGE -->
+                <div id="page-crime" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia gold-gradient mb-6">Kriminalitet</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="crimeGrid">
+                        <!-- Crime cards generated by JS -->
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-lg mt-6">
+                        <h3 class="text-lg font-bold text-yellow-600 mb-3">Høyrisiko Handlinger</h3>
+                        <p class="text-sm text-gray-400 mb-4">Disse handlingene gir høy belønning, men økt risiko for fengsel.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="highRiskGrid">
+                            <!-- High risk crimes -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRISON PAGE -->
+                <div id="page-prison" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia text-gray-400 mb-6">Fengsel</h2>
+                    
+                    <div class="glass-panel p-6 rounded-lg">
+                        <h3 class="text-lg font-bold text-red-500 mb-4">Innsatte</h3>
+                        <div id="prisonersList" class="space-y-3">
+                            <!-- Prisoners -->
+                        </div>
+                        <div id="noPrisoners" class="text-center text-gray-500 py-8">
+                            Ingen spillere i fengsel for øyeblikket
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAMILY PAGE -->
+                <div id="page-family" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia gold-gradient mb-6">Familie</h2>
+                    
+                    <div id="familyNone" class="glass-panel p-8 rounded-lg text-center">
+                        <p class="text-gray-400 mb-4">Du er ikke medlem av en familie ennå</p>
+                        <div class="space-y-4 max-w-md mx-auto">
+                            <button onclick="family.showCreate()" class="w-full btn-gold py-3 rounded font-bold">Opprett Familie</button>
+                            <p class="text-sm text-gray-500">Krav: Rang 3 + 10 kriminelle handlinger</p>
+                        </div>
+                    </div>
+
+                    <div id="familyCreate" class="hidden glass-panel p-6 rounded-lg max-w-md mx-auto">
+                        <h3 class="text-xl font-bold text-yellow-600 mb-4">Opprett Familie</h3>
+                        <input type="text" id="familyName" placeholder="Familienavn" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white">
+                        <input type="text" id="familyTag" placeholder="Tag (3 bokstaver)" maxlength="3" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white uppercase">
+                        <div class="flex gap-2">
+                            <button onclick="family.create()" class="flex-1 btn-gold py-2 rounded">Opprett</button>
+                            <button onclick="family.hideCreate()" class="flex-1 bg-gray-800 py-2 rounded text-gray-400">Avbryt</button>
+                        </div>
+                    </div>
+
+                    <div id="familyDetails" class="hidden space-y-4">
+                        <div class="glass-panel p-6 rounded-lg">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 id="familyDetailName" class="text-2xl font-bold text-yellow-500">Familienavn</h3>
+                                    <p id="familyDetailTag" class="text-gray-400">[TAG]</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-400">Medlemmer</div>
+                                    <div id="familyMemberCount" class="text-xl font-bold">0</div>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t border-gray-700 pt-4">
+                                <h4 class="font-bold text-yellow-600 mb-2">Medlemmer</h4>
+                                <div id="familyMembers" class="space-y-2"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="glass-panel p-4 rounded-lg">
+                            <h4 class="font-bold text-yellow-600 mb-2">Familie Chat</h4>
+                            <div id="familyChat" class="h-48 overflow-y-auto bg-black/30 rounded p-2 mb-2 text-sm space-y-1"></div>
+                            <div class="flex gap-2">
+                                <input type="text" id="familyChatInput" placeholder="Skriv til familien..." class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm" onkeypress="if(event.key==='Enter') family.sendChat()">
+                                <button onclick="family.sendChat()" class="btn-gold px-4 rounded text-sm">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MARKET PAGE -->
+                <div id="page-market" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia gold-gradient mb-6">Svartebørsen</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="marketGrid">
+                        <!-- Weapons -->
+                    </div>
+                </div>
+
+                <!-- FORUM PAGE -->
+                <div id="page-forum" class="hidden space-y-6 fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-mafia gold-gradient">Forum</h2>
+                        <button onclick="forum.showCreate()" class="btn-gold px-4 py-2 rounded text-sm font-bold">Ny Tråd</button>
+                    </div>
+                    
+                    <div id="forumList" class="space-y-3">
+                        <!-- Forum threads -->
+                    </div>
+                    
+                    <div id="forumThread" class="hidden glass-panel p-6 rounded-lg">
+                        <button onclick="forum.backToList()" class="text-sm text-gray-400 mb-4 hover:text-white">← Tilbake til forum</button>
+                        <h3 id="threadTitle" class="text-xl font-bold text-yellow-500 mb-2"></h3>
+                        <p id="threadAuthor" class="text-sm text-gray-400 mb-4"></p>
+                        <div id="threadContent" class="text-gray-300 mb-6 pb-6 border-b border-gray-700"></div>
+                        
+                        <h4 class="font-bold text-yellow-600 mb-3">Kommentarer</h4>
+                        <div id="threadComments" class="space-y-3 mb-4"></div>
+                        
+                        <div class="flex gap-2">
+                            <input type="text" id="commentInput" placeholder="Skriv en kommentar..." class="flex-1 p-3 bg-gray-900 border border-gray-700 rounded text-white" onkeypress="if(event.key==='Enter') forum.postComment()">
+                            <button onclick="forum.postComment()" class="btn-gold px-6 rounded font-bold">Post</button>
+                        </div>
+                    </div>
+
+                    <div id="forumCreate" class="hidden glass-panel p-6 rounded-lg max-w-2xl">
+                        <h3 class="text-xl font-bold text-yellow-600 mb-4">Ny Tråd</h3>
+                        <input type="text" id="newThreadTitle" placeholder="Tittel" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white">
+                        <textarea id="newThreadContent" placeholder="Innhold..." rows="4" class="w-full mb-4 p-3 bg-gray-900 border border-gray-700 rounded text-white"></textarea>
+                        <div class="flex gap-2">
+                            <button onclick="forum.createThread()" class="btn-gold px-6 py-2 rounded font-bold">Publiser</button>
+                            <button onclick="forum.hideCreate()" class="bg-gray-800 px-6 py-2 rounded text-gray-400">Avbryt</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MESSAGES PAGE -->
+                <div id="page-messages" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia gold-gradient mb-6">Private Meldinger</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-96">
+                        <div class="glass-panel rounded-lg p-4 overflow-y-auto">
+                            <h3 class="font-bold text-yellow-600 mb-3">Samtaler</h3>
+                            <div id="conversationsList" class="space-y-2">
+                                <!-- Conversations -->
+                            </div>
+                        </div>
+                        <div class="md:col-span-2 glass-panel rounded-lg p-4 flex flex-col">
+                            <div id="chatHeader" class="border-b border-gray-700 pb-2 mb-2 font-bold text-yellow-500">Velg en samtale</div>
+                            <div id="messagesList" class="flex-1 overflow-y-auto space-y-2 mb-2 text-sm"></div>
+                            <div id="messageInputArea" class="hidden flex gap-2">
+                                <input type="text" id="messageInput" placeholder="Skriv melding..." class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm" onkeypress="if(event.key==='Enter') messages.send()">
+                                <button onclick="messages.send()" class="btn-gold px-4 rounded text-sm">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-panel p-4 rounded-lg">
+                        <h3 class="font-bold text-yellow-600 mb-3">Ny Melding</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="newMsgRecipient" placeholder="Til (brukernavn)" class="p-2 bg-gray-900 border border-gray-700 rounded text-sm w-48">
+                            <input type="text" id="newMsgContent" placeholder="Melding..." class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm">
+                            <button onclick="messages.sendNew()" class="btn-gold px-4 rounded text-sm">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROFILE PAGE -->
+                <div id="page-profile" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia gold-gradient mb-6">Min Profil</h2>
+                    
+                    <div class="glass-panel p-6 rounded-lg max-w-2xl">
+                        <div class="flex gap-6 mb-6">
+                            <div class="relative">
+                                <img id="profileAvatar" src="" class="w-32 h-32 rounded-lg border-2 border-yellow-600 object-cover">
+                                <input type="file" id="avatarUpload" class="hidden" accept="image/*" onchange="profile.updateAvatar(this)">
+                                <button onclick="document.getElementById('avatarUpload').click()" class="absolute bottom-0 right-0 bg-yellow-600 text-black p-1 rounded text-xs font-bold">Endre</button>
+                            </div>
+                            <div class="flex-1 space-y-3">
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase">Brukernavn</label>
+                                    <input type="text" id="profileUsername" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white" readonly>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase">Profilbilde URL</label>
+                                    <input type="text" id="profileAvatarUrl" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white" onchange="profile.updateAvatarUrl(this.value)">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="p-3 bg-black/30 rounded">
+                                <div class="text-xs text-gray-500">Drap begått</div>
+                                <div id="profileKills" class="text-xl font-bold text-red-500">0</div>
+                            </div>
+                            <div class="p-3 bg-black/30 rounded">
+                                <div class="text-xs text-gray-500">Meldinger sendt</div>
+                                <div id="profileMsgCount" class="text-xl font-bold text-blue-500">0</div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="profile.save()" class="btn-gold px-6 py-2 rounded font-bold">Lagre Endringer</button>
+                    </div>
+                </div>
+
+                <!-- ADMIN PANEL -->
+                <div id="page-admin" class="hidden space-y-6 fade-in">
+                    <h2 class="text-3xl font-mafia text-red-500 mb-6">Admin Panel</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="glass-panel p-6 rounded-lg border-red-900/30">
+                            <h3 class="text-lg font-bold text-red-400 mb-4">Spiller Administrasjon</h3>
+                            <input type="text" id="adminSearchPlayer" placeholder="Søk etter spiller..." class="w-full mb-4 p-2 bg-gray-900 border border-gray-700 rounded text-white">
+                            <div id="adminPlayerResults" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                        </div>
+                        
+                        <div class="glass-panel p-6 rounded-lg border-red-900/30">
+                            <h3 class="text-lg font-bold text-red-400 mb-4">System Innstillinger</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-2 bg-black/30 rounded">
+                                    <span>AI Generering</span>
+                                    <button onclick="admin.toggleAI()" id="adminAIToggle" class="w-12 h-6 bg-green-600 rounded-full relative transition">
+                                        <span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></span>
+                                    </button>
+                                </div>
+                                <div class="flex justify-between items-center p-2 bg-black/30 rounded">
+                                    <span>Chat Moderering</span>
+                                    <span class="text-green-500 text-sm">Aktiv</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-lg border-red-900/30">
+                        <h3 class="text-lg font-bold text-red-400 mb-4">Rediger Spiller</h3>
+                        <div id="adminEditForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="hidden" id="adminEditId">
+                            <div>
+                                <label class="text-xs text-gray-500">Penger</label>
+                                <input type="number" id="adminEditMoney" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500">Rang (1-10)</label>
+                                <input type="number" id="adminEditRank" min="1" max="10" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500">Rolle</label>
+                                <select id="adminEditRole" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white">
+                                    <option value="player">Spiller</option>
+                                    <option value="mod">Moderator</option>
+                                    <option value="forum_mod">Forum Moderator</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button onclick="admin.savePlayer()" class="mt-4 btn-gold px-6 py-2 rounded font-bold">Lagre Endringer</button>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- Right Sidebar - Chat -->
+            <aside class="w-80 bg-gray-900/50 border-l border-yellow-900/20 flex flex-col hidden lg:flex">
+                <div class="p-3 border-b border-yellow-900/20 flex justify-between items-center">
+                    <h3 class="font-bold text-yellow-600 text-sm uppercase tracking-wider">Global Chat</h3>
+                    <span class="text-xs text-green-500">● Online</span>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-3 space-y-2" id="globalChat">
+                    <!-- Chat messages -->
+                </div>
+                
+                <div class="p-3 border-t border-yellow-900/20">
+                    <div class="flex gap-2 mb-2">
+                        <button onclick="chat.switchChannel('global')" id="chatBtnGlobal" class="text-xs px-2 py-1 rounded bg-yellow-600/20 text-yellow-500 border border-yellow-600/50">Global</button>
+                        <button onclick="chat.switchChannel('family')" id="chatBtnFamily" class="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 border border-gray-700">Familie</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="chatInput" placeholder="Skriv melding..." class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-sm text-white focus:border-yellow-600 focus:outline-none" onkeypress="if(event.key==='Enter') chat.send()">
+                        <button onclick="chat.send()" class="btn-gold px-3 rounded text-sm">→</button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const state = {
+            currentUser: null,
+            users: JSON.parse(localStorage.getItem('mafia_users')) || [
+                {id: 1, username: 'Admin', email: 'admin@mafia.no', password: 'admin', role: 'admin', rank: 10, xp: 1000, money: 1000000, health: 100, city: 'Oslo', weapon: 'Tommy Gun', family: null, kills: 0, messages: 0, avatar: 'https://i.pravatar.cc/250?img=11', crimes: 0, prisonUntil: null}
+            ],
+            families: JSON.parse(localStorage.getItem('mafia_families')) || [],
+            crimes: JSON.parse(localStorage.getItem('mafia_crimes')) || [],
+            forum: JSON.parse(localStorage.getItem('mafia_forum')) || [],
+            prisoners: [],
+            chat: [],
+            cooldowns: {},
+            aiEnabled: true
+        };
+
+        // Ranks
+        const ranks = [
+            'Litenfisk', 'Lommemann', 'Gjengmedlem', 'Kriminell', 'Capo', 
+            'Underboss', 'Boss', 'Don', 'Gudfaren', 'Legende'
+        ];
+
+        // Crime definitions
+        const crimeTypes = [
+            {id: 'pickpocket', name: 'Lommetyveri', difficulty: 1, reward: 100, xp: 10, jailChance: 5, cooldown: 10, risk: 'low'},
+            {id: 'burglary', name: 'Innbrudd', difficulty: 2, reward: 500, xp: 25, jailChance: 15, cooldown: 30, risk: 'medium'},
+            {id: 'car theft', name: 'Biltyveri', difficulty: 3, reward: 1500, xp: 50, jailChance: 25, cooldown: 60, risk: 'medium'},
+            {id: 'robbery', name: 'Ran', difficulty: 4, reward: 5000, xp: 100, jailChance: 40, cooldown: 120, risk: 'high'},
+            {id: 'bank', name: 'Bankran', difficulty: 5, reward: 25000, xp: 300, jailChance: 60, cooldown: 300, risk: 'extreme'},
+            {id: 'casino', name: 'Kasino-ran', difficulty: 6, reward: 100000, xp: 500, jailChance: 75, cooldown: 600, risk: 'extreme'}
+        ];
+
+        // Weapons
+        const weapons = [
+            {id: 'knife', name: 'Kniv', price: 500, damage: 10},
+            {id: 'pistol', name: 'Pistol', price: 2500, damage: 25},
+            {id: 'shotgun', name: 'Hagle', price: 8000, damage: 50},
+            {id: 'rifle', name: 'Rifle', price: 20000, damage: 75},
+            {id: 'tommy', name: 'Tommy Gun', price: 50000, damage: 100}
+        ];
+
+        // Auth System
+        const auth = {
+            toggleForm: () => {
+                document.getElementById('loginForm').classList.toggle('hidden');
+                document.getElementById('registerForm').classList.toggle('hidden');
+            },
+            
+            register: () => {
+                const username = document.getElementById('regUsername').value;
+                const email = document.getElementById('regEmail').value;
+                const password = document.getElementById('regPassword').value;
+                const city = document.getElementById('regCity').value;
+                
+                if (!username || !email || !password || !city) {
+                    alert('Fyll ut alle felter');
+                    return;
+                }
+                
+                if (state.users.find(u => u.username === username || u.email === email)) {
+                    alert('Brukernavn eller e-post er allerede i bruk');
+                    return;
+                }
+                
+                const newUser = {
+                    id: Date.now(),
+                    username,
+                    email,
+                    password,
+                    role: 'player',
+                    rank: 1,
+                    xp: 0,
+                    money: 1000,
+                    health: 100,
+                    city,
+                    weapon: null,
+                    family: null,
+                    kills: 0,
+                    messages: 0,
+                    avatar: `https://i.pravatar.cc/250?img=${Math.floor(Math.random() * 70)}`,
+                    crimes: 0,
+                    prisonUntil: null
+                };
+                
+                state.users.push(newUser);
+                localStorage.setItem('mafia_users', JSON.stringify(state.users));
+                
+                state.currentUser = newUser;
+                auth.showGame();
+            },
+            
+            login: () => {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                const user = state.users.find(u => (u.email === email || u.username === email) && u.password === password);
+                
+                if (!user) {
+                    alert('Feil e-post/brukernavn eller passord');
+                    return;
+                }
+                
+                state.currentUser = user;
+                auth.showGame();
+            },
+            
+            showGame: () => {
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('gameInterface').classList.remove('hidden');
+                game.init();
+            },
+            
+            logout: () => {
+                state.currentUser = null;
+                location.reload();
+            }
+        };
+
+        // Game Engine
+        const game = {
+            init: () => {
+                game.updateHUD();
+                game.generateDailyEvents();
+                game.startTimers();
+                game.navigate('dashboard');
+                chat.load();
+                prison.checkStatus();
+                
+                if (state.currentUser.role === 'admin') {
+                    document.getElementById('adminLink').classList.remove('hidden');
+                }
+            },
+            
+            navigate: (page) => {
+                // Hide all pages
+                document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+                document.getElementById(`page-${page}`).classList.remove('hidden');
+                
+                // Page specific init
+                if (page === 'crime') crime.init();
+                if (page === 'prison') prison.init();
+                if (page === 'family') family.init();
+                if (page === 'market') market.init();
+                if (page === 'forum') forum.init();
+                if (page === 'messages') messages.init();
+                if (page === 'profile') profile.init();
+                if (page === 'admin') admin.init();
+            },
+            
+            updateHUD: () => {
+                if (!state.currentUser) return;
+                
+                document.getElementById('hudUsername').textContent = state.currentUser.username;
+                document.getElementById('hudCity').textContent = state.currentUser.city;
+                document.getElementById('hudRank').textContent = ranks[state.currentUser.rank - 1] || 'Litenfisk';
+                document.getElementById('hudMoney').textContent = '$' + state.currentUser.money.toLocaleString();
+                document.getElementById('hudHealth').style.width = state.currentUser.health + '%';
+                document.getElementById('hudXP').textContent = `${state.currentUser.xp} / ${state.currentUser.rank * 100}`;
+                document.getElementById('hudXPBar').style.width = ((state.currentUser.xp % 100) / 100 * 100) + '%';
+                document.getElementById('hudKills').textContent = state.currentUser.kills;
+                document.getElementById('hudMessages').textContent = state.currentUser.messages;
+                document.getElementById('hudWeapon').textContent = state.currentUser.weapon || 'Ingen';
+                document.getElementById('hudFamily').textContent = state.currentUser.family || 'Ingen';
+                document.getElementById('hudAvatar').src = state.currentUser.avatar;
+                
+                document.getElementById('statsIncome').textContent = '$' + Math.floor(state.currentUser.money * 0.1).toLocaleString();
+                document.getElementById('statsWeapon').textContent = state.currentUser.weapon || 'Ingen';
+                document.getElementById('statsFamilyRank').textContent = state.currentUser.family ? '#3' : '--';
+            },
+            
+            generateDailyEvents: () => {
+                const events = [
+                    "Politiet gjennomfører razzia i " + state.currentUser.city,
+                    "Ny mafiafamilie etablert i Oslo",
+                    "Stor narkotikabeslaglagring i havnen",
+                    "Korrupt politimann avslørt",
+                    "Gjengoppgjør i sentrum - 3 skadet",
+                    "Kasinoet øker sikkerheten etter rykter om ran"
+                ];
+                
+                const container = document.getElementById('dailyEvents');
+                container.innerHTML = events.map(e => `
+                    <div class="flex items-start gap-3 p-3 bg-black/20 rounded border-l-2 border-yellow-600/50">
+                        <span class="text-yellow-600 text-xs">${new Date().toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span class="text-sm text-gray-300">${e}</span>
+                    </div>
+                `).join('');
+                
+                // Generate top players
+                const topPlayers = [...state.users].sort((a,b) => b.money - a.money).slice(0, 5);
+                document.getElementById('topPlayers').innerHTML = topPlayers.map((p, i) => `
+                    <div class="flex justify-between items-center p-2 bg-black/20 rounded">
+                        <span class="text-yellow-600 font-bold">#${i+1}</span>
+                        <span class="text-gray-300">${p.username}</span>
+                        <span class="text-green-400">$${p.money.toLocaleString()}</span>
+                    </div>
+                `).join('');
+            },
+            
+            startTimers: () => {
+                setInterval(() => {
+                    document.getElementById('gameTime').textContent = new Date().toLocaleString('no-NO');
+                    
+                    // Update cooldowns
+                    Object.keys(state.cooldowns).forEach(key => {
+                        if (state.cooldowns[key] > 0) {
+                            state.cooldowns[key]--;
+                            crime.updateCooldownUI(key);
+                        }
+                    });
+                    
+                    // AI Actions
+                    if (Math.random() < 0.1 && state.aiEnabled) {
+                        ai.act();
+                    }
+                }, 1000);
+            },
+            
+            save: () => {
+                localStorage.setItem('mafia_users', JSON.stringify(state.users));
+                localStorage.setItem('mafia_families', JSON.stringify(state.families));
+                localStorage.setItem('mafia_forum', JSON.stringify(state.forum));
+            }
+        };
+
+        // Crime System
+        const crime = {
+            init: () => {
+                const grid = document.getElementById('crimeGrid');
+                const highRisk = document.getElementById('highRiskGrid');
+                
+                grid.innerHTML = crimeTypes.filter(c => c.risk !== 'extreme').map(c => crime.createCard(c)).join('');
+                highRisk.innerHTML = crimeTypes.filter(c => c.risk === 'extreme').map(c => crime.createCard(c)).join('');
+            },
+            
+            createCard: (crime) => {
+                const canDo = state.currentUser.rank >= crime.difficulty;
+                const cooldown = state.cooldowns[crime.id] || 0;
+                
+                return `
+                    <div class="crime-card glass-panel p-4 rounded-lg relative overflow-hidden ${!canDo ? 'opacity-50' : ''}">
+                        ${cooldown > 0 ? `<div class="cooldown-overlay absolute inset-0 flex items-center justify-center z-10">
+                            <span class="text-2xl font-mono font-bold text-yellow-500" id="cd-${crime.id}">${Math.floor(cooldown/60)}:${(cooldown%60).toString().padStart(2,'0')}</span>
+                        </div>` : ''}
+                        
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg ${crime.risk === 'extreme' ? 'text-red-500' : 'text-yellow-500'}">${crime.name}</h3>
+                            <span class="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400">Rang ${crime.difficulty}+</span>
+                        </div>
+                        
+                        <div class="space-y-1 text-sm text-gray-400 mb-4">
+                            <div class="flex justify-between">
+                                <span>Belønning:</span>
+                                <span class="text-green-400">$${crime.reward.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Erfaring:</span>
+                                <span class="text-blue-400">+${crime.xp} XP</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Fengsel-sjanse:</span>
+                                <span class="text-red-400">${crime.jailChance}%</span>
+                            </div>
+                        </div>
+                        
+                        <button onclick="crime.attempt('${crime.id}')" ${!canDo || cooldown > 0 ? 'disabled' : ''} 
+                            class="w-full py-2 rounded font-bold transition ${canDo && cooldown === 0 ? 'btn-gold' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}">
+                            ${canDo ? 'Utfør' : 'Låst'}
+                        </button>
+                    </div>
+                `;
+            },
+            
+            attempt: (crimeId) => {
+                if (state.currentUser.prisonUntil) return;
+                
+                const crime = crimeTypes.find(c => c.id === crimeId);
+                const roll = Math.random() * 100;
+                
+                if (roll < crime.jailChance) {
+                    // Jail
+                    const jailTime = 120 + (crime.difficulty * 30); // 2-5 minutter
+                    state.currentUser.prisonUntil = Date.now() + (jailTime * 1000);
+                    prison.checkStatus();
+                    chat.system(`${state.currentUser.username} ble tatt av politiet under ${crime.name.toLowerCase()}!`);
+                } else if (roll < crime.jailChance + 20) {
+                    // Fail
+                    alert('Handlingen mislyktes! Du kom unna, men uten utbytte.');
+                } else {
+                    // Success
+                    state.currentUser.money += crime.reward;
+                    state.currentUser.xp += crime.xp;
+                    state.currentUser.crimes++;
+                    
+                    // Rank up check
+                    if (state.currentUser.xp >= state.currentUser.rank * 100 && state.currentUser.rank < 10) {
+                        state.currentUser.rank++;
+                        state.currentUser.xp = 0;
+                        chat.system(`${state.currentUser.username} er nå rang ${ranks[state.currentUser.rank-1]}!`);
+                    }
+                    
+                    // Set cooldown
+                    state.cooldowns[crimeId] = crime.cooldown;
+                    
+                    game.updateHUD();
+                    crime.init();
+                    game.save();
+                    
+                    alert(`Suksess! Du tjente $${crime.reward.toLocaleString()}`);
+                }
+            },
+            
+            updateCooldownUI: (crimeId) => {
+                const el = document.getElementById(`cd-${crimeId}`);
+                if (el) {
+                    const cd = state.cooldowns[crimeId];
+                    el.textContent = `${Math.floor(cd/60)}:${(cd%60).toString().padStart(2,'0')}`;
+                    if (cd <= 0) crime.init();
+                }
+            }
+        };
+
+        // Prison System
+        const prison = {
+            checkStatus: () => {
+                if (state.currentUser.prisonUntil && Date.now() < state.currentUser.prisonUntil) {
+                    document.getElementById('prisonOverlay').classList.remove('hidden');
+                    prison.updateTimer();
+                } else if (state.currentUser.prisonUntil) {
+                    // Released
+                    state.currentUser.prisonUntil = null;
+                    document.getElementById('prisonOverlay').classList.add('hidden');
+                    game.save();
+                }
+            },
+            
+            updateTimer: () => {
+                const update = () => {
+                    if (!state.currentUser.prisonUntil) return;
+                    const remaining = Math.ceil((state.currentUser.prisonUntil - Date.now()) / 1000);
+                    if (remaining <= 0) {
+                        prison.checkStatus();
+                        return;
+                    }
+                    const el = document.getElementById('prisonTimer');
+                    if (el) {
+                        el.textContent = `${Math.floor(remaining/60).toString().padStart(2,'0')}:${(remaining%60).toString().padStart(2,'0')}`;
+                    }
+                    requestAnimationFrame(update);
+                };
+                update();
+            },
+            
+            attemptBreakout: () => {
+                if (Math.random() > 0.3) {
+                    state.currentUser.prisonUntil = null;
+                    document.getElementById('prisonOverlay').classList.add('hidden');
+                    chat.system(`${state.currentUser.username} rømte fra fengsel!`);
+                    game.save();
+                } else {
+                    // Extended sentence
+                    state.currentUser.prisonUntil += 60000; // +1 min
+                    alert('Rømningsforsøk mislyktes! Du fikk 1 minutts straffetillegg.');
+                }
+            },
+            
+            init: () => {
+                // Show other prisoners
+                const prisoners = state.users.filter(u => u.prisonUntil && u.id !== state.currentUser.id);
+                const list = document.getElementById('prisonersList');
+                const empty = document.getElementById('noPrisoners');
+                
+                if (prisoners.length === 0) {
+                    list.innerHTML = '';
+                    empty.classList.remove('hidden');
+                } else {
+                    empty.classList.add('hidden');
+                    list.innerHTML = prisoners.map(p => `
+                        <div class="flex justify-between items-center p-3 bg-black/30 rounded border border-red-900/30">
+                            <div>
+                                <div class="font-bold text-gray-300">${p.username}</div>
+                                <div class="text-xs text-gray-500">Rang: ${ranks[p.rank-1]}</div>
+                            </div>
+                            <button onclick="prison.breakOut(${p.id})" class="px-3 py-1 bg-red-900/50 hover:bg-red-900/80 border border-red-600 rounded text-xs text-red-200 transition">
+                                Bryt ut
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            },
+            
+            breakOut: (userId) => {
+                const target = state.users.find(u => u.id === userId);
+                if (!target || !target.prisonUntil) return;
+                
+                if (Math.random() > 0.5) {
+                    target.prisonUntil = null;
+                    chat.system(`${state.currentUser.username} brøt ut ${target.username} fra fengsel!`);
+                    game.save();
+                    prison.init();
+                } else {
+                    state.currentUser.prisonUntil = Date.now() + 120000; // 2 min
+                    prison.checkStatus();
+                    alert('Du ble tatt under rømningsforsøket!');
+                }
+            }
+        };
+
+        // Family System
+        const family = {
+            init: () => {
+                if (state.currentUser.family) {
+                    document.getElementById('familyNone').classList.add('hidden');
+                    document.getElementById('familyCreate').classList.add('hidden');
+                    document.getElementById('familyDetails').classList.remove('hidden');
+                    
+                    const fam = state.families.find(f => f.name === state.currentUser.family);
+                    if (fam) {
+                        document.getElementById('familyDetailName').textContent = fam.name;
+                        document.getElementById('familyDetailTag').textContent = `[${fam.tag}]`;
+                        document.getElementById('familyMemberCount').textContent = fam.members.length;
+                        document.getElementById('familyMembers').innerHTML = fam.members.map(m => {
+                            const user = state.users.find(u => u.username === m);
+                            return `<div class="flex justify-between p-2 bg-black/30 rounded text-sm"><span>${m}</span><span class="text-gray-500">${ranks[user?.rank-1 || 0]}</span></div>`;
+                        }).join('');
+                    }
+                } else {
+                    document.getElementById('familyNone').classList.remove('hidden');
+                    document.getElementById('familyDetails').classList.add('hidden');
+                }
+            },
+            
+            showCreate: () => {
+                if (state.currentUser.rank < 3 || state.currentUser.crimes < 10) {
+                    alert('Krav: Rang 3 og 10 kriminelle handlinger');
+                    return;
+                }
+                document.getElementById('familyNone').classList.add('hidden');
+                document.getElementById('familyCreate').classList.remove('hidden');
+            },
+            
+            hideCreate: () => {
+                document.getElementById('familyCreate').classList.add('hidden');
+                document.getElementById('familyNone').classList.remove('hidden');
+            },
+            
+            create: () => {
+                const name = document.getElementById('familyName').value;
+                const tag = document.getElementById('familyTag').value.toUpperCase();
+                
+                if (!name || !tag || tag.length !== 3) {
+                    alert('Ugyldig input');
+                    return;
+                }
+                
+                if (state.families.find(f => f.name === name || f.tag === tag)) {
+                    alert('Familienavn eller tag er allerede i bruk');
+                    return;
+                }
+                
+                const newFamily = {
+                    name,
+                    tag,
+                    leader: state.currentUser.username,
+                    members: [state.currentUser.username],
+                    created: Date.now()
+                };
+                
+                state.families.push(newFamily);
+                state.currentUser.family = name;
+                game.save();
+                family.init();
+            },
+            
+            sendChat: () => {
+                const input = document.getElementById('familyChatInput');
+                const msg = input.value.trim();
+                if (!msg) return;
+                
+                const chatDiv = document.getElementById('familyChat');
+                chatDiv.innerHTML += `<div class="text-gray-300"><span class="text-yellow-600 font-bold">${state.currentUser.username}:</span> ${msg}</div>`;
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+                input.value = '';
+            }
+        };
+
+        // Market System
+        const market = {
+            init: () => {
+                document.getElementById('marketGrid').innerHTML = weapons.map(w => `
+                    <div class="glass-panel p-4 rounded-lg">
+                        <h3 class="font-bold text-lg text-yellow-500 mb-2">${w.name}</h3>
+                        <div class="text-sm text-gray-400 mb-4">
+                            <div>Skade: ${w.damage}</div>
+                            <div class="text-green-400 font-bold mt-2">$${w.price.toLocaleString()}</div>
+                        </div>
+                        <button onclick="market.buy('${w.id}')" class="w-full btn-gold py-2 rounded font-bold ${state.currentUser.money < w.price ? 'opacity-50 cursor-not-allowed' : ''}">
+                            Kjøp
+                        </button>
+                    </div>
+                `).join('');
+            },
+            
+            buy: (weaponId) => {
+                const weapon = weapons.find(w => w.id === weaponId);
+                if (state.currentUser.money >= weapon.price) {
+                    state.currentUser.money -= weapon.price;
+                    state.currentUser.weapon = weapon.name;
+                    game.updateHUD();
+                    game.save();
+                    alert(`Du kjøpte ${weapon.name}!`);
+                    market.init();
+                }
+            }
+        };
+
+        // Chat System
+        const chat = {
+            channel: 'global',
+            
+            load: () => {
+                // Initial messages
+                if (state.chat.length === 0) {
+                    state.chat = [
+                        {user: 'System', msg: 'Velkommen til Mafiaens Hevn!', time: Date.now()},
+                        {user: 'Don_Corleone', msg: 'Noen som vil kjøpe beskyttelse?', time: Date.now() - 3600000}
+                    ];
+                }
+                chat.render();
+            },
+            
+            render: () => {
+                const container = document.getElementById('globalChat');
+                container.innerHTML = state.chat.map(m => `
+                    <div class="chat-message text-sm break-words">
+                        <span class="text-yellow-600 font-bold text-xs">${m.user}:</span>
+                        <span class="text-gray-300">${m.msg}</span>
+                    </div>
+                `).join('');
+                container.scrollTop = container.scrollHeight;
+            },
+            
+            send: () => {
+                const input = document.getElementById('chatInput');
+                const msg = input.value.trim();
+                if (!msg) return;
+                
+                if (state.currentUser.prisonUntil) {
+                    alert('Du kan ikke chatte fra fengsel!');
+                    return;
+                }
+                
+                state.chat.push({
+                    user: state.currentUser.username,
+                    msg: msg,
+                    time: Date.now()
+                });
+                
+                state.currentUser.messages++;
+                input.value = '';
+                chat.render();
+                game.updateHUD();
+                game.save();
+            },
+            
+            system: (msg) => {
+                state.chat.push({
+                    user: 'System',
+                    msg: msg,
+                    time: Date.now()
+                });
+                chat.render();
+            },
+            
+            switchChannel: (ch) => {
+                chat.channel = ch;
+                document.getElementById('chatBtnGlobal').className = ch === 'global' ? 'text-xs px-2 py-1 rounded bg-yellow-600/20 text-yellow-500 border border-yellow-600/50' : 'text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 border border-gray-700';
+                document.getElementById('chatBtnFamily').className = ch === 'family' ? 'text-xs px-2 py-1 rounded bg-yellow-600/20 text-yellow-500 border border-yellow-600/50' : 'text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 border border-gray-700';
+            }
+        };
+
+        // Forum System
+        const forum = {
+            init: () => {
+                document.getElementById('forumList').innerHTML = state.forum.map(t => `
+                    <div class="glass-panel p-4 rounded-lg cursor-pointer hover:border-yellow-600/50 transition" onclick="forum.viewThread(${t.id})">
+                        <h3 class="font-bold text-yellow-500 mb-1">${t.title}</h3>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>Av: ${t.author}</span>
+                            <span>${new Date(t.date).toLocaleDateString('no-NO')}</span>
+                        </div>
+                    </div>
+                `).join('');
+            },
+            
+            showCreate: () => {
+                document.getElementById('forumList').classList.add('hidden');
+                document.getElementById('forumCreate').classList.remove('hidden');
+            },
+            
+            hideCreate: () => {
+                document.getElementById('forumCreate').classList.add('hidden');
+                document.getElementById('forumList').classList.remove('hidden');
+            },
+            
+            createThread: () => {
+                const title = document.getElementById('newThreadTitle').value;
+                const content = document.getElementById('newThreadContent').value;
+                
+                if (!title || !content) return;
+                
+                state.forum.push({
+                    id: Date.now(),
+                    title,
+                    content,
+                    author: state.currentUser.username,
+                    date: Date.now(),
+                    comments: []
+                });
+                
+                game.save();
+                forum.hideCreate();
+                forum.init();
+            },
+            
+            viewThread: (id) => {
+                const thread = state.forum.find(t => t.id === id);
+                if (!thread) return;
+                
+                document.getElementById('forumList').classList.add('hidden');
+                document.getElementById('forumThread').classList.remove('hidden');
+                
+                document.getElementById('threadTitle').textContent = thread.title;
+                document.getElementById('threadAuthor').textContent = `Av ${thread.author} - ${new Date(thread.date).toLocaleString('no-NO')}`;
+                document.getElementById('threadContent').textContent = thread.content;
+                
+                document.getElementById('threadComments').innerHTML = thread.comments.map(c => `
+                    <div class="p-3 bg-black/30 rounded text-sm">
+                        <div class="text-yellow-600 font-bold text-xs mb-1">${c.author}</div>
+                        <div class="text-gray-300">${c.text}</div>
+                    </div>
+                `).join('');
+            },
+            
+            backToList: () => {
+                document.getElementById('forumThread').classList.add('hidden');
+                document.getElementById('forumList').classList.remove('hidden');
+            },
+            
+            postComment: () => {
+                const input = document.getElementById('commentInput');
+                const text = input.value.trim();
+                if (!text) return;
+                
+                const threadId = parseInt(document.getElementById('threadTitle').dataset.id);
+                const thread = state.forum.find(t => t.id === threadId);
+                if (thread) {
+                    thread.comments.push({
+                        author: state.currentUser.username,
+                        text,
+                        date: Date.now()
+                    });
+                    game.save();
+                    forum.viewThread(threadId);
+                    input.value = '';
+                }
+            }
+        };
+
+        // Messages System
+        const messages = {
+            currentChat: null,
+            
+            init: () => {
+                // Load conversations
+                const conversations = [...new Set(state.users.filter(u => u.id !== state.currentUser.id).map(u => u.username))];
+                document.getElementById('conversationsList').innerHTML = conversations.map(c => `
+                    <div class="p-2 bg-black/30 rounded cursor-pointer hover:bg-yellow-900/20 text-sm" onclick="messages.openChat('${c}')">
+                        ${c}
+                    </div>
+                `).join('');
+            },
+            
+            openChat: (username) => {
+                messages.currentChat = username;
+                document.getElementById('chatHeader').textContent = username;
+                document.getElementById('messageInputArea').classList.remove('hidden');
+                document.getElementById('messagesList').innerHTML = '<div class="text-gray-500 text-center text-sm">Ingen meldinger ennå</div>';
+            },
+            
+            send: () => {
+                const input = document.getElementById('messageInput');
+                const text = input.value.trim();
+                if (!text || !messages.currentChat) return;
+                
+                const list = document.getElementById('messagesList');
+                if (list.children[0]?.classList.contains('text-gray-500')) list.innerHTML = '';
+                
+                list.innerHTML += `<div class="text-right"><span class="inline-block bg-yellow-900/30 text-gray-300 px-3 py-1 rounded text-sm">${text}</span></div>`;
+                list.scrollTop = list.scrollHeight;
+                input.value = '';
+                
+                state.currentUser.messages++;
+                game.updateHUD();
+                game.save();
+                
+                // Simulate reply
+                setTimeout(() => {
+                    list.innerHTML += `<div class="text-left"><span class="inline-block bg-gray-800 text-gray-300 px-3 py-1 rounded text-sm">Hei! Dette er en automatisk melding.</span></div>`;
+                    list.scrollTop = list.scrollHeight;
+                }, 2000);
+            },
+            
+            sendNew: () => {
+                const to = document.getElementById('newMsgRecipient').value;
+                const content = document.getElementById('newMsgContent').value;
+                
+                if (!to || !content) return;
+                
+                alert(`Melding sendt til ${to}!`);
+                document.getElementById('newMsgRecipient').value = '';
+                document.getElementById('newMsgContent').value = '';
+                state.currentUser.messages++;
+                game.updateHUD();
+                game.save();
+            }
+        };
+
+        // Profile System
+        const profile = {
+            init: () => {
+                document.getElementById('profileUsername').value = state.currentUser.username;
+                document.getElementById('profileAvatar').src = state.currentUser.avatar;
+                document.getElementById('profileAvatarUrl').value = state.currentUser.avatar;
+                document.getElementById('profileKills').textContent = state.currentUser.kills;
+                document.getElementById('profileMsgCount').textContent = state.currentUser.messages;
+            },
+            
+            updateAvatar: (input) => {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        state.currentUser.avatar = e.target.result;
+                        document.getElementById('profileAvatar').src = e.target.result;
+                        game.updateHUD();
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                }
+            },
+            
+            updateAvatarUrl: (url) => {
+                state.currentUser.avatar = url;
+                document.getElementById('profileAvatar').src = url;
+                game.updateHUD();
+            },
+            
+            save: () => {
+                game.save();
+                alert('Profil oppdatert!');
+            }
+        };
+
+        // Admin System
+        const admin = {
+            init: () => {
+                if (state.currentUser.role !== 'admin') {
+                    game.navigate('dashboard');
+                    return;
+                }
+            },
+            
+            toggleAI: () => {
+                state.aiEnabled = !state.aiEnabled;
+                const btn = document.getElementById('adminAIToggle');
+                if (state.aiEnabled) {
+                    btn.className = 'w-12 h-6 bg-green-600 rounded-full relative transition';
+                    btn.innerHTML = '<span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></span>';
+                } else {
+                    btn.className = 'w-12 h-6 bg-gray-600 rounded-full relative transition';
+                    btn.innerHTML = '<span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full"></span>';
+                }
+            },
+            
+            savePlayer: () => {
+                const id = parseInt(document.getElementById('adminEditId').value);
+                const user = state.users.find(u => u.id === id);
+                if (user) {
+                    user.money = parseInt(document.getElementById('adminEditMoney').value) || 0;
+                    user.rank = parseInt(document.getElementById('adminEditRank').value) || 1;
+                    user.role = document.getElementById('adminEditRole').value;
+                    game.save();
+                    alert('Spiller oppdatert!');
+                }
+            }
+        };
+
+        // AI System
+        const ai = {
+            names: ['Vito', 'Salvatore', 'Giovanni', 'Marco', 'Luca', 'Antonio', 'Francesco', 'Mario'],
+            
+            act: () => {
+                // Generate AI prisoner if needed
+                const realPrisoners = state.users.filter(u => u.prisonUntil).length;
+                if (realPrisoners < 5 && Math.random() < 0.3) {
+                    // AI would add prisoner here
+                }
+                
+                // Random chat message
+                if (Math.random() < 0.1) {
+                    const actions = [
+                        'noen som selger våpen?',
+                        'politiet er overalt i dag...',
+                        'søker etter ny familie',
+                        'noen som vil kjøpe informasjon?',
+                        'hvem drepte Don Marco?'
+                    ];
+                    const name = ai.names[Math.floor(Math.random() * ai.names.length)] + '_' + Math.floor(Math.random() * 100);
+                    chat.system(`${name}: ${actions[Math.floor(Math.random() * actions.length)]}`);
+                }
+            }
+        };
+
+        // Initialize
+        window.onload = () => {
+            // Check for existing session
+            const saved = localStorage.getItem('mafia_current_user');
+            if (saved) {
+                const user = state.users.find(u => u.id === parseInt(saved));
+                if (user) {
+                    state.currentUser = user;
+                    auth.showGame();
+                }
+            }
+        };
+    </script>
+</body>
+</html>
