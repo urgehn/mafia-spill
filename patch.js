@@ -123,8 +123,32 @@
   document.head.appendChild(style);
 
   // HELPERS
-  function getUser() { try { return JSON.parse(localStorage.getItem('mafiaenshevn_user')||'null'); } catch { return null; } }
-  function saveUser(u) { localStorage.setItem('mafiaenshevn_user', JSON.stringify(u)); window.dispatchEvent(new Event('storage')); }
+  // Separat nøkkel for profilbilde - overlever React sine localStorage-skrivinger
+  const IMG_KEY = 'mafiaenshevn_profileImage';
+  function getStoredImage() { return localStorage.getItem(IMG_KEY) || ''; }
+  function saveStoredImage(url) { if(url) localStorage.setItem(IMG_KEY, url); else localStorage.removeItem(IMG_KEY); }
+
+  // Patch localStorage.setItem så React ikke kan slette profilbilde
+  const _origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value) {
+    if (key === 'mafiaenshevn_user') {
+      try {
+        const data = JSON.parse(value);
+        const savedImg = getStoredImage();
+        if (savedImg && !data.profileImage) {
+          data.profileImage = savedImg;
+        } else if (data.profileImage) {
+          saveStoredImage(data.profileImage);
+        }
+        _origSetItem(key, JSON.stringify(data));
+        return;
+      } catch(e) {}
+    }
+    _origSetItem(key, value);
+  };
+
+  function getUser() { try { const u = JSON.parse(localStorage.getItem('mafiaenshevn_user')||'null'); if(u && !u.profileImage) { const img = getStoredImage(); if(img) u.profileImage = img; } return u; } catch { return null; } }
+  function saveUser(u) { if(u && u.profileImage) saveStoredImage(u.profileImage); localStorage.setItem('mafiaenshevn_user', JSON.stringify(u)); window.dispatchEvent(new Event('storage')); }
   function kr(n) { return (n||0).toLocaleString('no-NO') + ' kr'; }
   function toast(msg, color='#4ade80') {
     const t = document.createElement('div'); t.className='pttoast';
@@ -255,7 +279,99 @@
     node.childNodes.forEach(fixMoney);
   }
 
-  // ONLINE
+  // FENGSEL - vis profilbilde og injiser bruker i He-listen om mangler
+  function patchPrison() {
+    const user = getUser();
+    if (!user || !user.inPrison) return;
+
+    // Finn fengsel-tabellen - alle "innsatte" rader
+    const prisonRows = document.querySelectorAll('[class*="divide-y"] > div[class*="p-4"]');
+    let userFoundInPrison = false;
+
+    prisonRows.forEach(row => {
+      const nameEl = row.querySelector('[class*="font-semibold"]');
+      if (!nameEl) return;
+
+      // Sjekk om dette er brukeren
+      if (nameEl.textContent.trim() === user.name) {
+        userFoundInPrison = true;
+        // Vis profilbilde hvis det finnes
+        const avatarWrap = row.querySelector('[class*="rounded-full"]');
+        if (avatarWrap && user.profileImage && !avatarWrap.querySelector('img')) {
+          avatarWrap.style.overflow = 'hidden';
+          avatarWrap.innerHTML = `<img src="${user.profileImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+        }
+      } else {
+        // Vis profilbilde for andre spillere om de har det (fra allUsers)
+        const avatarWrap = row.querySelector('[class*="rounded-full"]');
+        if (avatarWrap && !avatarWrap.querySelector('img')) {
+          // Prøv å hente bilde fra en evt. lagret liste
+          const storedImg = localStorage.getItem('pp_' + (nameEl.textContent.trim()));
+          if (storedImg) {
+            avatarWrap.style.overflow = 'hidden';
+            avatarWrap.innerHTML = `<img src="${storedImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+          }
+        }
+      }
+    });
+
+    // Hvis bruker er i fengsel men ikke vises i listen, injiser dem
+    if (!userFoundInPrison) {
+      const prisonContainer = document.querySelector('[class*="divide-y"]');
+      if (!prisonContainer) return;
+
+      // Sjekk at dette faktisk er fengsel-containeren (har "Bryt ut" knapper eller Bot-badges)
+      const isFengselet = prisonContainer.querySelector('[class*="yellow-500"]') || prisonContainer.textContent.includes('Bot');
+      if (!isFengselet) return;
+
+      // Unngå å legge til dobbelt
+      if (prisonContainer.querySelector('[data-patch-user="1"]')) return;
+
+      const RANKS = ['Nybegynner','Bråkmaker','Løpegutt','Gangster','Langer','Kaptein','Juniorsjef','Sjef','Underboss','Consigliere','Capo','Capo di Monte','Capo dei Capi','Capo di Tutti Capi','Don','Gudfar','Legende'];
+      const rank = RANKS[Math.min((user.rank||1)-1, RANKS.length-1)];
+      const releaseTime = user.prisonReleaseTime || (Date.now() + 60000);
+      const secsLeft = Math.max(0, Math.floor((releaseTime - Date.now()) / 1000));
+      const reason = user.prisonReason || 'Kriminalitet';
+      const avatar = user.profileImage
+        ? `<img src="${user.profileImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5" style="color:#6b7280"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+      const row = document.createElement('div');
+      row.className = 'p-4 hover:bg-white/5 transition-colors';
+      row.dataset.patchUser = '1';
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #a855f7">
+              ${avatar}
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-weight:600;color:#fff">${user.name}</span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#1a1a1a;border:1px solid #333;color:#d4a017">Deg</span>
+              </div>
+              <div style="font-size:12px;color:#6b7280">${rank} • ${reason}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="display:flex;align-items:center;gap:4px;color:#facc15">
+              <span style="font-family:monospace;font-size:14px" data-prison-timer="${releaseTime}">${secsLeft}s</span>
+            </div>
+            <div style="font-size:12px;color:#6b7280">${Math.floor((releaseTime - Date.now())/60000)} minutters dom</div>
+          </div>
+        </div>
+      `;
+      prisonContainer.prepend(row);
+    }
+
+    // Oppdater timere
+    document.querySelectorAll('[data-prison-timer]').forEach(el => {
+      const rt = parseInt(el.dataset.prisonTimer);
+      const s = Math.max(0, Math.floor((rt - Date.now()) / 1000));
+      const m = Math.floor(s / 60), sec = s % 60;
+      el.textContent = m > 0 ? `${m}m ${sec}s` : `${s}s`;
+    });
+  }
   function patchOnline() {
     const h2=Array.from(document.querySelectorAll('h2')).find(e=>e.textContent.includes('spillere online'));
     if(h2&&!document.getElementById('ptleg')){
@@ -289,13 +405,38 @@
     document.querySelectorAll('button').forEach(b=>{if(b.textContent.trim()==='Oppdater')b.id='hide-refresh-btn';});
   }
 
+  // Lagre eget profilbilde med navn-nøkkel for visning i fengsel
+  function syncProfileImageByName() {
+    const user = getUser();
+    if (user && user.name && user.profileImage) {
+      localStorage.setItem('pp_' + user.name, user.profileImage);
+    }
+  }
+
   // MAIN
-  function patch() { hideRefresh(); fixMoney(document.body); patchOnline(); buildProfileCard(); }
+  function patch() {
+    hideRefresh();
+    fixMoney(document.body);
+    patchOnline();
+    buildProfileCard();
+    syncProfileImageByName();
+    patchPrison();
+  }
 
   new MutationObserver(patch).observe(document.body,{childList:true,subtree:true});
   setInterval(patch,30000);
+  // Oppdater fengsel-timere hvert sekund
+  setInterval(()=>{
+    document.querySelectorAll('[data-prison-timer]').forEach(el=>{
+      const rt=parseInt(el.dataset.prisonTimer);
+      const s=Math.max(0,Math.floor((rt-Date.now())/1000));
+      const m=Math.floor(s/60),sec=s%60;
+      el.textContent=m>0?`${m}m ${sec}s`:`${s}s`;
+    });
+    patchPrison();
+  }, 1000);
   setTimeout(patch,800);
   setTimeout(patch,2500);
   setTimeout(patch,5000);
-  console.log('[PATCH v3] ✓');
+  console.log('[PATCH v4] ✓');
 })();
